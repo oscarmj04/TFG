@@ -25,3 +25,9 @@
     Predecir.py ha subido la confianza de 52:13% a un 92.21% diciendo esca*
 
     Imagen spot confundida con black rot a un 51%
+
+    16/04/2026
+        Esquema de carpetas limpiado y creada interfaz para internet donde subir imagen
+        y realizar prediccion.
+        ----Intentar conseguir link publico
+        ----Memoria??? :(
