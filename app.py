@@ -14,7 +14,18 @@ num_ftrs = especialista.fc.in_features
 especialista.fc = nn.Linear(num_ftrs, 4) 
 
 print("Cargando los pesos entrenados...")
-especialista.load_state_dict(torch.load("models/modelo_vid.pth", map_location=device))
+# 1. Cargamos el archivo de MLflow. 
+# Añadimos weights_only=False porque sabemos que el archivo es seguro y nuestro.
+archivo_cargado = torch.load("models/model.pth", map_location=device, weights_only=False)
+
+# 2. Inyectamos los pesos a nuestra red
+if isinstance(archivo_cargado, dict):
+    # Si en el futuro guardamos solo los pesos (state_dict), entra por aquí
+    especialista.load_state_dict(archivo_cargado)
+else:
+    # Como MLflow guardó el modelo completo (la clase ResNet), le extraemos los pesos con .state_dict()
+    especialista.load_state_dict(archivo_cargado.state_dict())
+
 especialista.eval()
 print("✅ Modelo listo.")
 
