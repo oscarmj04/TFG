@@ -65,8 +65,8 @@ with gr.Blocks(theme=tema_uva) as interfaz:
     gr.Examples(
         examples=[
             ["images/BlackRot.JPG"], 
-            ["images/Spot.JPG"],
             ["images/ESCA.JPG"],
+            ["images/Spot2.JPG"],
             ["images/Healthy.JPG"]
         ],
         inputs=imagen_entrada,
