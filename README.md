@@ -6,7 +6,7 @@
   
   -Predecir.py  --> prototipo de aplicación
   
-  -App.py --> aplicacion de predicción con interfaz mejorada y soporte en red:
+  -App.py --> aplicacion de predicción con interfaz mejorada:
         
         https://huggingface.co/spaces/oscarmj04/t1
 
