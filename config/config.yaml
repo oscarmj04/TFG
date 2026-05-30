@@ -1,14 +1,12 @@
 # config/config.yaml
 datos:
-  ruta_raiz: "C:/Users/oscar/Documents/tfg_vides/data"
-  train: "${datos.ruta_raiz}/train"
-  val: "${datos.ruta_raiz}/val"
-  num_clases: 4
+  train: "data/train"
+  val: "data/val"
   img_size: 224
 
 entrenamiento:
-  lr: 0.0001 # Un valor mas pequeño suele ser más estable para transfer learning
-  batch_size: 16 # Si tu PC va lento, baja este número
+  lr: 0.0001 
+  batch_size: 16 
   epochs: 20
 
 modelo:
