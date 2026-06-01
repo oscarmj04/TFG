@@ -10,5 +10,5 @@ entrenamiento:
   epochs: 20
 
 modelo:
-  arquitectura: "resnet18"
+  arquitectura: "squeezenet" #"resnet18", "mobilenet_v2", "efficientnet_b0, squeeznet"
   pretrained: True

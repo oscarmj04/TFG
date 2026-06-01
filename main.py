@@ -7,12 +7,31 @@ from omegaconf import DictConfig
 import mlflow
 import mlflow.pytorch
 from sklearn.metrics import confusion_matrix, precision_score, recall_score, f1_score, balanced_accuracy_score
-import random
-import os
 import seaborn as sns
 import matplotlib.pyplot as plt
 import numpy as np
-import collections  # Para contar las imágenes del dataset
+import collections
+import random
+import os
+
+# --- 1. FUNCIÓN PARA FIJAR LA SEMILLA (REPRODUCIBILIDAD) ---
+def set_seed(seed=42):
+    """Congela todo el azar de Python, NumPy y PyTorch"""
+    random.seed(seed)
+    os.environ['PYTHONHASHSEED'] = str(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+
+# --- 2. CONTROL ESTRICTO PARA DATALOADERS (TRABAJADORES SECUNDARIOS) ---
+def seed_worker(worker_id):
+    worker_seed = torch.initial_seed() % 2**32
+    np.random.seed(worker_seed)
+    random.seed(worker_seed)
 
 def calcular_accuracy(outputs, labels):
     _, preds = torch.max(outputs, 1)
@@ -31,14 +50,12 @@ def validar(model, loader, criterion, device):
             loss = criterion(outputs, labels)
             val_loss += loss.item()
             
-            # Guardamos las predicciones para calcular todas las métricas juntas al final
             _, preds = torch.max(outputs, 1)
             all_preds.extend(preds.cpu().numpy())
             all_labels.extend(labels.cpu().numpy())
             
     val_loss = val_loss / len(loader)
     
-    # Cálculos de Scikit-Learn
     acc = np.mean(np.array(all_preds) == np.array(all_labels))
     precision = precision_score(all_labels, all_preds, average='macro', zero_division=0)
     recall = recall_score(all_labels, all_preds, average='macro', zero_division=0)
@@ -49,7 +66,11 @@ def validar(model, loader, criterion, device):
 
 @hydra.main(version_base=None, config_path="config", config_name="config")
 def train(cfg: DictConfig):
-    # --- 1. DETECCIÓN AUTOMÁTICA DE GPU/CPU ---
+    # Aplicamos la semilla estática al inicio
+    set_seed(42)
+    generador_estricto = torch.Generator()
+    generador_estricto.manual_seed(42)
+
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     if device.type == 'cuda':
         print(f"🚀 Iniciando entrenamiento en GPU: {torch.cuda.get_device_name(0)}")
@@ -58,10 +79,11 @@ def train(cfg: DictConfig):
 
     mlflow.set_experiment("Deteccion_Enfermedades_Vid")
 
-    with mlflow.start_run():
+    with mlflow.start_run(run_name=str(cfg.modelo.arquitectura)):
         mlflow.log_params(cfg.entrenamiento)
+        mlflow.log_param("seed", 42)
+        mlflow.log_param("arquitectura", str(cfg.modelo.arquitectura)) # Registramos qué modelo usamos
 
-        # 2. Transformaciones
         train_transforms = transforms.Compose([
             transforms.Resize((cfg.datos.img_size, cfg.datos.img_size)),
             transforms.RandomHorizontalFlip(p=0.5),
@@ -77,15 +99,12 @@ def train(cfg: DictConfig):
             transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         ])
 
-        # --- 3. CARGA DE DATASETS Y CLASES DINÁMICAS ---
         train_dataset = datasets.ImageFolder(cfg.datos.train, train_transforms)
         val_dataset = datasets.ImageFolder(cfg.datos.val, val_transforms)
         
-        # Obtenemos los nombres directamente de las carpetas
         nombres_clases = train_dataset.classes
         num_clases_detectadas = len(nombres_clases)
 
-        # --- 4. GENERACIÓN DEL RESUMEN POR CONSOLA ---
         train_counts = collections.Counter([label for _, label in train_dataset.samples])
         val_counts = collections.Counter([label for _, label in val_dataset.samples])
 
@@ -94,31 +113,55 @@ def train(cfg: DictConfig):
         print("Train:")
         for idx, count in train_counts.items():
             print(f"  - {nombres_clases[idx]}: {count} imágenes")
-        
         print("Validation:")
         for idx, count in val_counts.items():
             print(f"  - {nombres_clases[idx]}: {count} imágenes")
         print("-" * 40 + "\n")
 
-        # 5. DataLoaders (Usando los datasets ya creados)
+        # DataLoaders con Semilla estricta
         train_loader = torch.utils.data.DataLoader(
             train_dataset, 
             batch_size=cfg.entrenamiento.batch_size, 
             shuffle=True,
             num_workers=2, 
-            pin_memory=True if device.type == 'cuda' else False
+            pin_memory=True if device.type == 'cuda' else False,
+            worker_init_fn=seed_worker,
+            generator=generador_estricto
         )
-        
         val_loader = torch.utils.data.DataLoader(
             val_dataset,
             batch_size=cfg.entrenamiento.batch_size,
             num_workers=2,
-            pin_memory=True if device.type == 'cuda' else False
+            pin_memory=True if device.type == 'cuda' else False,
+            worker_init_fn=seed_worker,
+            generator=generador_estricto
         )
 
-        # 6. Modelo Dinámico (Usa num_clases_detectadas)
-        model = models.resnet18(weights=models.ResNet18_Weights.IMAGENET1K_V1)
-        model.fc = nn.Linear(model.fc.in_features, num_clases_detectadas)
+        # --- 3. CONSTRUCTOR DE MODELOS (FACTORY PATTERN) ---
+        nombre_arq = str(cfg.modelo.arquitectura)
+        print(f"🏗️ Construyendo modelo: {nombre_arq}")
+        
+        if nombre_arq == "resnet18":
+            model = models.resnet18(weights=models.ResNet18_Weights.IMAGENET1K_V1)
+            model.fc = nn.Linear(model.fc.in_features, num_clases_detectadas)
+            
+        elif nombre_arq == "mobilenet_v2":
+            model = models.mobilenet_v2(weights=models.MobileNet_V2_Weights.IMAGENET1K_V1)
+            model.classifier[1] = nn.Linear(model.last_channel, num_clases_detectadas)
+            
+        elif nombre_arq == "efficientnet_b0":
+            model = models.efficientnet_b0(weights=models.EfficientNet_B0_Weights.IMAGENET1K_V1)
+            model.classifier[1] = nn.Linear(model.classifier[1].in_features, num_clases_detectadas)
+            
+        elif nombre_arq == "squeezenet":
+            model = models.squeezenet1_0(weights=models.SqueezeNet1_0_Weights.IMAGENET1K_V1)
+            # SqueezeNet clasifica con una capa Conv2d 1x1, no con una Linear
+            model.classifier[1] = nn.Conv2d(512, num_clases_detectadas, kernel_size=(1, 1), stride=(1, 1))
+            model.num_classes = num_clases_detectadas
+            
+        else:
+            raise ValueError(f"❌ Arquitectura no reconocida: {nombre_arq}")
+
         model = model.to(device)
 
         optimizer = optim.Adam(model.parameters(), lr=cfg.entrenamiento.lr)
@@ -148,13 +191,11 @@ def train(cfg: DictConfig):
             mlflow.log_metric("val_balanced_acc", float(v_bacc), step=epoch)
             
             print(f"Época {epoch+1}: Loss: {train_loss/len(train_loader):.4f} | Acc: {v_acc:.2%} | Prec: {v_prec:.4f} | Rec: {v_rec:.4f} | F1: {v_f1:.4f} | B.Acc: {v_bacc:.4f}")
-            
-        # 7. Matriz de Confusión Dinámica (Usando los nombres extraídos de las carpetas)
+        
         generar_matriz_confusion(model, val_loader, device, nombres_clases)
 
-        # Guardamos el modelo en MLflow al terminar
-        mlflow.pytorch.log_model(model, "modelo_resnet18_vides")
-        print("Entrenamiento finalizado y modelo guardado en MLflow.")
+        mlflow.pytorch.log_model(model, f"modelo_{cfg.modelo.arquitectura}_vides")
+        print(f"✅ Entrenamiento finalizado y modelo ({cfg.modelo.arquitectura}) guardado en MLflow.")
 
 def generar_matriz_confusion(model, loader, device, clases):
     model.eval()

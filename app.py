@@ -2,35 +2,67 @@ import gradio as gr
 import torch
 import torch.nn as nn
 from torchvision import models, transforms
-from PIL import Image
+import os
 
-# --- 1. CONFIGURACIÓN DEL MODELO ---
+# --- 1. CONFIGURACIÓN GLOBAL ---
 clases_vides = ['Black Rot', 'Esca', 'Sana', 'Spot']
 device = torch.device("cpu") 
 
-print("Cargando red neuronal especialista (ResNet18)...")
-especialista = models.resnet18(weights=None)
-num_ftrs = especialista.fc.in_features
-especialista.fc = nn.Linear(num_ftrs, 4) 
+# Diccionario para guardar los modelos en la memoria RAM y no tener que recargarlos en cada clic
+modelos_cacheados = {}
 
-print("Cargando los pesos entrenados...")
-# 1. Cargamos el archivo de MLflow. 
-# Añadimos weights_only=False porque sabemos que el archivo es seguro y nuestro.
-archivo_cargado = torch.load("models/model.pth", map_location=device, weights_only=False)
+# --- 2. MOTOR DE CARGA DINÁMICA (FACTORY PATTERN) ---
+def obtener_modelo(nombre_arq):
+    # Si el modelo ya se usó antes, lo sacamos de la memoria súper rápido
+    if nombre_arq in modelos_cacheados:
+        return modelos_cacheados[nombre_arq]
+    
+    print(f"⚙️ Cargando {nombre_arq} por primera vez...")
+    
+    # 1. Construimos el "esqueleto" vacío según el modelo elegido
+    if nombre_arq == "resnet18":
+        modelo = models.resnet18(weights=None)
+        modelo.fc = nn.Linear(modelo.fc.in_features, len(clases_vides))
+        
+    elif nombre_arq == "mobilenet_v2":
+        modelo = models.mobilenet_v2(weights=None)
+        modelo.classifier[1] = nn.Linear(modelo.last_channel, len(clases_vides))
+        
+    elif nombre_arq == "squeezenet":
+        modelo = models.squeezenet1_0(weights=None)
+        modelo.classifier[1] = nn.Conv2d(512, len(clases_vides), kernel_size=(1, 1), stride=(1, 1))
+        modelo.num_classes = len(clases_vides)
+        
+    else:
+        raise ValueError("Arquitectura no soportada")
 
-# 2. Inyectamos los pesos a nuestra red
-if isinstance(archivo_cargado, dict):
-    # Si en el futuro guardamos solo los pesos (state_dict), entra por aquí
-    especialista.load_state_dict(archivo_cargado)
-else:
-    # Como MLflow guardó el modelo completo (la clase ResNet), le extraemos los pesos con .state_dict()
-    especialista.load_state_dict(archivo_cargado.state_dict())
+    # 2. Buscamos el archivo de pesos correspondiente
+    ruta_pesos = f"models/modelo_{nombre_arq}.pth"
+    if not os.path.exists(ruta_pesos):
+        raise FileNotFoundError(f"❌ No se encontró el archivo {ruta_pesos}. ¡Asegúrate de haberlo copiado!")
 
-especialista.eval()
-print("✅ Modelo listo.")
+    # 3. Le inyectamos los pesos (El cerebro entrenado)
+    archivo_cargado = torch.load(ruta_pesos, map_location=device, weights_only=False)
+    
+    if isinstance(archivo_cargado, dict):
+        modelo.load_state_dict(archivo_cargado)
+    else:
+        modelo.load_state_dict(archivo_cargado.state_dict())
 
-# --- 2. FUNCIÓN DE PREDICCIÓN CON UMBRAL ---
-def predecir_con_umbral(img):
+    modelo.eval()
+    modelo = modelo.to(device)
+    
+    # 4. Lo guardamos en la RAM para la próxima vez
+    modelos_cacheados[nombre_arq] = modelo
+    print(f"✅ {nombre_arq} listo para predecir.")
+    
+    return modelo
+
+# --- 3. FUNCIÓN DE PREDICCIÓN ---
+def predecir_con_umbral(img, nombre_arq):
+    if img is None:
+        return {"Error: Sube una imagen": 1.0}
+        
     transform = transforms.Compose([
         transforms.Resize((224, 224)),
         transforms.ToTensor(),
@@ -38,16 +70,18 @@ def predecir_con_umbral(img):
     ])
 
     img_t = transform(img).unsqueeze(0).to(device)
+    
+    # Pedimos el modelo al sistema de caché
+    especialista = obtener_modelo(nombre_arq)
 
     with torch.no_grad():
         out_especialista = especialista(img_t)
         probabilidades = torch.nn.functional.softmax(out_especialista[0], dim=0)
     
-    # Si pasa el filtro, devolvemos los resultados normales
     resultados = {clases_vides[i]: float(probabilidades[i]) for i in range(len(clases_vides))}
     return resultados
 
-# --- 3. DISEÑO DE LA INTERFAZ WEB ---
+# --- 4. DISEÑO DE LA INTERFAZ WEB ---
 tema_uva = gr.themes.Soft(
     primary_hue="green", 
     neutral_hue="slate",
@@ -59,7 +93,6 @@ with gr.Blocks(theme=tema_uva) as interfaz:
         """
         <h1 style='text-align: center; color: #2e7d32;'>🍇 Sistema Inteligente de Diagnóstico Vitícola</h1>
         <p style='text-align: center; font-size: 16px; color: #555;'>Sube una fotografía de una hoja de vid para evaluar si está sana o presenta síntomas de Black Rot, Esca o Spot.</p>
-        <p style='text-align: center; font-size: 14px; color: #777;'><i>El sistema incorpora detección de incertidumbre para imágenes fuera de dominio.</i></p>
         <hr>
         """
     )
@@ -67,6 +100,15 @@ with gr.Blocks(theme=tema_uva) as interfaz:
     with gr.Row():
         with gr.Column(scale=1):
             imagen_entrada = gr.Image(type="pil", label="Sube tu fotografía aquí", sources=["upload"])
+            
+            # NUEVO: Selector de modelos
+            selector_modelo = gr.Dropdown(
+                choices=["resnet18", "mobilenet_v2", "squeezenet"],
+                value="squeezenet", # Por defecto cargará la más ligera
+                label="🧠 Selecciona la Red Neuronal (Modelo)",
+                info="Compara cómo piensan las distintas arquitecturas"
+            )
+            
             boton_predecir = gr.Button("🔍 Analizar Hoja", variant="primary")
             
         with gr.Column(scale=1):
@@ -93,9 +135,10 @@ with gr.Blocks(theme=tema_uva) as interfaz:
         """
     )
     
+    # Vinculamos el botón: Ahora le pasamos TANTO la imagen COMO el valor del desplegable
     boton_predecir.click(
         fn=predecir_con_umbral, 
-        inputs=imagen_entrada, 
+        inputs=[imagen_entrada, selector_modelo], 
         outputs=resultado_salida
     )
 
