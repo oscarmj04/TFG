@@ -25,7 +25,6 @@ data/train/*
 data/val/*
 !data/train/.keep
 !data/val/.keep
-docs/*.pdf
 
 # 5. Registros y MLflow
 mlruns/
