@@ -1,0 +1,46 @@
+# ==========================================
+# 🍇 .gitignore para TFG Viticultura (PyTorch + MLflow)
+# ==========================================
+
+# 1. Archivos de Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# 2. Entornos Virtuales (Conda / Venv)
+env/
+venv/
+.env
+
+# 3. Modelos Entrenados (Evitar límite de 100MB de GitHub)
+# Ignoramos todos los pesos, pero mantenemos la carpeta models/ vacía
+models/*.pth
+models/*.pt
+models/*.ckpt
+
+# 4. Datos e Imágenes de Entrenamiento
+# Ignoramos el dataset masivo para no saturar GitHub
+data/train/*
+data/val/*
+!data/train/.keep
+!data/val/.keep
+
+# 5. Registros y MLflow
+mlruns/
+*.db
+mlflow.db
+alembic/
+
+# 6. Salidas generadas automáticamente por tu código
+matriz_confusion.png
+
+# 7. Archivos del Sistema Operativo (Windows/Mac)
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 8. Archivos de IDEs (VS Code, PyCharm, etc.)
+.vscode/
+.idea/
+*.swp
