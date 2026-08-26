@@ -5,8 +5,28 @@ from torchvision import models, transforms
 import os
 
 # --- 1. CONFIGURACIÓN GLOBAL ---
-clases_vides = ['Black Rot', 'Esca', 'Sana', 'Spot']
 device = torch.device("cpu") 
+
+def cargar_clases_dinamicas(ruta_dataset):
+    """
+    Lee dinámicamente los nombres de las clases basándose en las carpetas del dataset.
+    Se ordenan alfabéticamente para coincidir exactamente con el mapeo que hace PyTorch.
+    """
+    if not os.path.exists(ruta_dataset):
+        raise FileNotFoundError(f"🚨 ERROR CRÍTICO: No se encuentra la ruta '{ruta_dataset}'. El servidor no puede arrancar sin conocer las clases.")
+        
+    clases = sorted([d for d in os.listdir(ruta_dataset) if os.path.isdir(os.path.join(ruta_dataset, d))])
+    
+    if not clases:
+        raise ValueError(f"🚨 ERROR CRÍTICO: La carpeta '{ruta_dataset}' está vacía. No hay clases para detectar.")
+        
+    return clases
+
+# Ajusta esta ruta a donde tengas tus carpetas de entrenamiento 
+RUTA_DATOS = "data_final/train" 
+
+clases_vides = cargar_clases_dinamicas(RUTA_DATOS)
+print(f"📂 Clases detectadas automáticamente para inferencia: {clases_vides}")
 
 # Diccionario para guardar los modelos en la memoria RAM y no tener que recargarlos en cada clic
 modelos_cacheados = {}
