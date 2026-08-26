@@ -23,7 +23,7 @@ def cargar_clases_dinamicas(ruta_dataset):
     return clases
 
 # Ajusta esta ruta a donde tengas tus carpetas de entrenamiento 
-RUTA_DATOS = "data_final/train" 
+RUTA_DATOS = "data/train" 
 
 clases_vides = cargar_clases_dinamicas(RUTA_DATOS)
 print(f"📂 Clases detectadas automáticamente para inferencia: {clases_vides}")
