@@ -32,7 +32,11 @@ def obtener_modelo(nombre_arq):
         modelo = models.squeezenet1_0(weights=None)
         modelo.classifier[1] = nn.Conv2d(512, len(clases_vides), kernel_size=(1, 1), stride=(1, 1))
         modelo.num_classes = len(clases_vides)
-        
+
+    elif nombre_arq == "efficientnet_b0":
+        modelo = models.efficientnet_b0(weights=None)
+        modelo.classifier[1] = nn.Linear(modelo.classifier[1].in_features, len(clases_vides))
+
     else:
         raise ValueError("Arquitectura no soportada")
 
@@ -103,8 +107,8 @@ with gr.Blocks(theme=tema_uva) as interfaz:
             
             # NUEVO: Selector de modelos
             selector_modelo = gr.Dropdown(
-                choices=["resnet18", "mobilenet_v2", "squeezenet"],
-                value="squeezenet", # Por defecto cargará la más ligera
+                choices=["resnet18", "mobilenet_v2", "squeezenet", "efficientnet_b0"],
+                value="squeezenet", # Por defecto
                 label="🧠 Selecciona la Red Neuronal (Modelo)",
                 info="Compara cómo piensan las distintas arquitecturas"
             )
