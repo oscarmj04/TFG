@@ -32,11 +32,11 @@ El proyecto abarca todo el ciclo de vida del software (MLOps), desde el entrenam
     
 2. Crea y activa un entorno virtual de Python e instala las dependencias.
 
-    python -m venv venv
-    venv\Scripts\activate
-    pip install -r requirements.txt
+   python -m venv venv
+   venv\Scripts\activate
+   pip install -r requirements.txt
 
-3. Ejecución del Backend (Entrenamiento y Trazabilidad):
+4. Ejecución del Backend (Entrenamiento y Trazabilidad):
    - Lanzamiento entrenamiento.
    
        python main.py
@@ -45,7 +45,7 @@ El proyecto abarca todo el ciclo de vida del software (MLOps), desde el entrenam
 
        python main.py modelo.arquitectura=mobilenet_v2 entrenamiento.lr=0.005
 
-4. Ejecución del Frontend (Interfaz Web de Inferencia):
+5. Ejecución del Frontend (Interfaz Web de Inferencia):
    Asegúrate de tener los archivos de pesos (`.pth`) dentro de la carpeta `models/`.
 
      python app.py
