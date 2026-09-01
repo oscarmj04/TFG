@@ -115,7 +115,7 @@ tema_uva = gr.themes.Soft(
 with gr.Blocks(theme=tema_uva) as interfaz:
     gr.Markdown(
         """
-        <h1 style='text-align: center; color: #2e7d32;'>🍇 Sistema Inteligente de Diagnóstico Vitícola</h1>
+        <h1 style='text-align: center; color: #2e7d32;'>🍇 Sistema Inteligente de Clasificación Vitícola</h1>
         <p style='text-align: center; font-size: 16px; color: #555;'>Sube una fotografía de una hoja de vid para evaluar si está sana o presenta síntomas de Black Rot, Esca o Spot.</p>
         <hr>
         """
@@ -136,7 +136,7 @@ with gr.Blocks(theme=tema_uva) as interfaz:
             boton_predecir = gr.Button("🔍 Analizar Hoja", variant="primary")
             
         with gr.Column(scale=1):
-            resultado_salida = gr.Label(num_top_classes=4, label="Diagnóstico de la IA")
+            resultado_salida = gr.Label(num_top_classes=4, label="Predicción del Modelo", value={"Cargando...": 1.0})
             
     gr.Markdown("### 📂 Imágenes de prueba")
     gr.Examples(

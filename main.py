@@ -73,9 +73,9 @@ def train(cfg: DictConfig):
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     if device.type == 'cuda':
-        print(f"🚀 Iniciando entrenamiento en GPU: {torch.cuda.get_device_name(0)}")
+        print(f" Iniciando entrenamiento en GPU: {torch.cuda.get_device_name(0)}")
     else:
-        print("⚠️ No se detectó GPU. Iniciando entrenamiento en CPU (puede ser lento).")
+        print(" No se detectó GPU. Iniciando entrenamiento en CPU (puede ser lento).")
 
     mlflow.set_experiment("Deteccion_Enfermedades_Vid")
 
