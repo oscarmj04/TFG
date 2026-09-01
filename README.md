@@ -27,8 +27,8 @@ El proyecto abarca todo el ciclo de vida del software (MLOps), desde el entrenam
 
 1. Clona este repositorio en tu equipo.
 
-    git clone https://github.com/oscarmj04/TFG-VitiCare.git
-    cd TFG-VitiCare
+    ```git clone https://github.com/oscarmj04/TFG-VitiCare.git```
+    ```cd TFG-VitiCare```
     
 2. Crea y activa un entorno virtual de Python e instala las dependencias.
 
@@ -41,16 +41,16 @@ El proyecto abarca todo el ciclo de vida del software (MLOps), desde el entrenam
 4. Ejecución del Backend (Entrenamiento y Trazabilidad):
    - Lanzamiento entrenamiento.
    
-       python main.py
+       ```python main.py```
        
    - Lanzamiento con alteración de hiperparámetros.
 
-       python main.py modelo.arquitectura=mobilenet_v2 entrenamiento.lr=0.005
+       ```python main.py modelo.arquitectura=mobilenet_v2 entrenamiento.lr=0.005```
 
 5. Ejecución del Frontend (Interfaz Web de Inferencia):
    Asegúrate de tener los archivos de pesos (`.pth`) dentro de la carpeta `models/`.
 
-     python app.py
+     ```python app.py```
 
 🌐 Enlace Externo
 Versión en producción disponible en Hugging Face Spaces: [https://huggingface.co/spaces/oscarmj04/t1ç](https://huggingface.co/spaces/oscarmj04/t1ç)
