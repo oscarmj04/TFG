@@ -51,6 +51,26 @@ El proyecto abarca todo el ciclo de vida del software (MLOps), desde el entrenam
 5. Ejecución del Frontend (Interfaz Web de Inferencia):
    Asegúrate de tener los archivos de pesos (`.pth`) dentro de la carpeta `models/`.
 
+📂 Estructura de Directorios y Datos
+
+Para que los scripts de entrenamiento (`main.py`) y la interfaz web (`app.py`) localicen los datos y modelos correctamente, debes crear y organizar las carpetas en la raíz del proyecto de la siguiente manera:
+
+1. **Dataset de Imágenes (`data/`)**:
+   El proyecto utiliza la estructura estándar de PyTorch `ImageFolder`, dividiendo las imágenes en conjuntos de entrenamiento (`train`) y validación (`val`), organizados a su vez por clases:
+   ```text
+   data/
+   ├── train/
+   │   ├── Sana/
+   │   ├── Black_Rot/
+   │   ├── Esca/
+   │   └── Spot/
+   │
+   └── val/
+       ├── Sana/
+       ├── Black_Rot/
+       ├── Esca/
+       └── Spot/
+
      ```python app.py```
 
 🌐 Enlace Externo
