@@ -31,10 +31,9 @@ El proyecto abarca todo el ciclo de vida del software (MLOps), desde el entrenam
     cd TFG-VitiCare
     
 2. Crea y activa un entorno virtual de Python e instala las dependencias.
-
-   python -m venv venv
-   venv\Scripts\activate
-   pip install -r requirements.txt
+python -m venv venv
+venv\Scripts\activate
+pip install -r requirements.txt
 
 4. Ejecución del Backend (Entrenamiento y Trazabilidad):
    - Lanzamiento entrenamiento.
