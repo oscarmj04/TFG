@@ -28,9 +28,10 @@ El proyecto abarca todo el ciclo de vida del software (MLOps), desde el entrenam
 1. Clona este repositorio en tu equipo.
 
     ```git clone https://github.com/oscarmj04/TFG-VitiCare.git```
+   
     ```cd TFG-VitiCare```
     
-2. Crea y activa un entorno virtual de Python e instala las dependencias.
+3. Crea y activa un entorno virtual de Python e instala las dependencias.
 
    ```python -m venv venv```
 
